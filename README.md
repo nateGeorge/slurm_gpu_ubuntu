@@ -17,6 +17,9 @@ This guide will help you create and install a GPU HPC cluster with a job queue a
 - Install munge/SLURM and configure
 - User management
 
+## Acknowledgements
+This wouldn't have been possible without this [github repo](https://github.com/mknoxnv/ubuntu-slurm) from mknoxnv.  I don't know who that person is, but they saved me weeks of work trying to figure out all the conf files and services, etc.
+
 # Preparing Hardware
 
 If you do not already have hardware, here are some considerations:
