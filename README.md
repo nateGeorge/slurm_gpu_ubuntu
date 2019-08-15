@@ -463,6 +463,9 @@ When in doubt, you can check the log files.  The locations are set in the slurm.
 ## Node is stuck draining (drng from `sinfo`)
 This has happened due to the memory size in slurm.conf being higher than actual memor size.  Double check the memory from `free -m` or `sudo slurmd -C` and update slurm.conf on all machines in the cluster.  Then run `sudo scontrol update NodeName=worker1 State=RESUME`
 
+## Nodes are not visible upon restart
+After restarting the master node, sometimes the workers aren't there. I've found I often have to do `sudo scontrol update NodeName=worker1 State=RESUME` to get them working/available.
+
 
 ## Taking a node offline
 The best way to take a node offline for maintenance is to drain it:
