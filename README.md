@@ -469,3 +469,7 @@ The best way to take a node offline for maintenance is to drain it:
 `sudo scontrol update NodeName=worker1 State=DRAIN Reason='Maintenance'`
 
 Users can see the reason with `sinfo -R`
+
+
+## Testing GPU load
+Using `watch -n 0.1 nvidia-smi` will show the GPU load in real-time.  You can use this to monitor jobs as they are scheduled to make sure all the GPUs are being utilized.
