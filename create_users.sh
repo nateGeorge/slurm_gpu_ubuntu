@@ -20,6 +20,7 @@ do
     sudo useradd $id -d /storage/$id/ -m -g students -p $(openssl passwd -1 ${PASSWORD}) -e $(date '+%Y-%m-%d' -d '+1 year +30 days') -s /bin/bash
     # make their home folder only readable to them and not other students
     sudo chmod +700 /storage/$id
+    sudo chown -R $id:students /storage/$id
     sudo sacctmgr -i create user name=$id account=students
     # expire their password so it must be changed upon first login
     sudo passwd -e $id
