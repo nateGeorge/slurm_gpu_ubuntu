@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# You should first create the students SLURM account:
+# sudo sacctmgr create account students
+
 csvfile=Class_List_MSDS684_FW1_2019.csv
 defaultsalt="deepdream"
 
@@ -18,5 +21,7 @@ do
     # make their home folder only readable to them and not other students
     sudo chmod +700 /storage/$id
     sudo sacctmgr -i create user name=$id account=students
+    # expire their password so it must be changed upon first login
+    sudo passwd -e $id
   fi
 done
