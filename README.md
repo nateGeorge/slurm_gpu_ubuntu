@@ -42,6 +42,35 @@ I recommend using [LVM](https://www.howtogeek.com/211937/how-to-use-lvm-on-ubunt
 
 **Note**: Along the way I used the package manager to update/upgade software many times (`sudo apt-get update` and `sudo apt-get upgrade`) followed by reboots.  If something is not working, this can be a first step to try to debug it.
 
+## Synchronizing GID/UIDs
+You may want to sync the GIDs and UIDs across machines.  This can be done with something like LDAP (install instructions [here](https://computingforgeeks.com/how-to-install-and-configure-openldap-ubuntu-18-04/) and [here](https://www.techrepublic.com/article/how-to-install-openldap-on-ubuntu-18-04/)).  However, in my experience, the only GIDs and UIDs that need to be synced are the slurm and munge users.  Other users can be created and run SLURM jobs without having usernames on the other machines in the cluster.
+
+## Set up munge and slurm users and groups
+Immediately after installing OS’s, you want to create the munge and slurm users and groups on all machines.  The GID and UID (group and user IDs) must match for munge and slurm across all machines.  If you have a lot of machines, you can use the parallel SSH utilities mentioned before.  There are also other options like NIS and NISplus.
+
+On all machines we need the munge authentication service and slurm installed.  First, we want to have the munge and slurm users/groups with the same UIDs and GIDs.  In my experience, these are the only GID and UIDs that need synchronization for the cluster to work.  On all machines:
+
+```
+sudo adduser -u 1111 munge --disabled-password --gecos ""
+sudo adduser -u 1121 slurm --disabled-password --gecos ""
+```
+
+#### You shouldn’t need to do this, but just in case, you could create the groups first, then create the users
+
+```
+sudo addgroup -gid 1111 munge
+sudo addgroup -gid 1121 slurm
+
+sudo adduser -u 1111 munge --disabled-password --gecos "" -gid 1111
+sudo adduser -u 1121 slurm --disabled-password --gecos "" -gid 1121
+```
+
+When a user is created, a group with the same name is created as well.
+
+The numbers don’t matter as long as they are available for the user and group IDs.  These numbers seemed to work with a default Ubuntu 18.04.3 installation.  It seems like by default ubuntu sets up a new user with a UID and  GID of UID + 1 if the GID already exists, so this follows that pattern.
+
+
+
 ## Installing software/drivers
 Next you should install SSH.  Open a terminal and install: `sudo apt install openssh-server -y`.
 
@@ -69,30 +98,6 @@ sudo aptitude install nvidia-driver-430
 But that still didn't seem to solve the issue, and I installed it via the "Software & Updates" menu under "Additional Drivers".
 
 We also use [NoMachine](https://www.nomachine.com/) for remote GUI access.
-
-## Set up munge and slurm users and groups
-Immediately after installing OS’s, you want to create the munge and slurm users and groups on all machines.  The GID and UID (group and user IDs) must match for munge and slurm across all machines.  If you have a lot of machines, you can use the parallel SSH utilities mentioned before, or synchronize the GIDs and UIDs across all machines with something like LDAP (install instructions [here](https://computingforgeeks.com/how-to-install-and-configure-openldap-ubuntu-18-04/) and [here](https://www.techrepublic.com/article/how-to-install-openldap-on-ubuntu-18-04/)).  There are also other options like NIS and NISplus.
-
-On all machines we need the munge authentication service and slurm installed.  First, we want to have the munge and slurm users/groups with the same UIDs and GIDs.  In my experience, these are the only GID and UIDs that need synchronization for the cluster to work.  On all machines:
-
-```
-sudo adduser -u 1111 munge --disabled-password --gecos ""
-sudo adduser -u 1121 slurm --disabled-password --gecos ""
-```
-
-#### You shouldn’t need to do this, but just in case, you could create the groups first, then create the users
-
-```
-sudo addgroup -gid 1111 munge
-sudo addgroup -gid 1121 slurm
-
-sudo adduser -u 1111 munge --disabled-password --gecos "" -gid 1111
-sudo adduser -u 1121 slurm --disabled-password --gecos "" -gid 1121
-```
-
-When a user is created, a group with the same name is created as well.
-
-The numbers don’t matter as long as they are available for the user and group IDs.  These numbers seemed to work with a default Ubuntu 18.04.3 installation.  It seems like by default ubuntu sets up a new user with a UID and  GID of UID + 1 if the GID already exists, so this follows that pattern.
 
 ## Install the Anaconda Python distribution.
 Anaconda makes installing deep learning libraries easier, and doesn’t require installing CUDA/CuDNN libraries (which is a pain).  Anaconda handles the CUDA and other dependencies for deep learning libraries.
