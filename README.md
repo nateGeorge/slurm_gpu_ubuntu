@@ -43,7 +43,14 @@ I recommend using [LVM](https://www.howtogeek.com/211937/how-to-use-lvm-on-ubunt
 **Note**: Along the way I used the package manager to update/upgade software many times (`sudo apt-get update` and `sudo apt-get upgrade`) followed by reboots.  If something is not working, this can be a first step to try to debug it.
 
 ## Synchronizing GID/UIDs
-You may want to sync the GIDs and UIDs across machines.  This can be done with something like LDAP (install instructions [here](https://computingforgeeks.com/how-to-install-and-configure-openldap-ubuntu-18-04/) and [here](https://www.techrepublic.com/article/how-to-install-openldap-on-ubuntu-18-04/)).  However, in my experience, the only GIDs and UIDs that need to be synced are the slurm and munge users.  Other users can be created and run SLURM jobs without having usernames on the other machines in the cluster.
+It's recommend to sync the GIDs and UIDs across machines.  This can be done with something like LDAP (install instructions [here](https://computingforgeeks.com/how-to-install-and-configure-openldap-ubuntu-18-04/) and [here](https://www.techrepublic.com/article/how-to-install-openldap-on-ubuntu-18-04/)).  In my experience, for basic cluster management where all users can read and write to the folders where job files exist, the only GIDs and UIDs that need to be synced are the slurm and munge users.  Other users can be created and run SLURM jobs without having usernames on the other machines in the cluster.
+
+However, if you want to isolate access to users' home folders (best practice I'd say), then you must synchronize users across the cluster.  The easiest way I've found to synchronize UIDs and GIDs across an Ubuntu cluster is FreeIPA.  Here are installation instructions:
+
+- [Server (master node)](https://computingforgeeks.com/how-to-install-and-configure-freeipa-server-on-ubuntu-18-04-ubuntu-16-04/)
+- [Client (worker nodes)](https://computingforgeeks.com/how-to-configure-freeipa-client-on-ubuntu-18-04-ubuntu-16-04-centos-7/)
+
+It is important that you set the hostname to a FQDN, otherwise kerberos/FreeIPA won't work.  If you accidentally set the hostname during the kerberos setup to the wrong thing, you can change it in `/etc/krb5.conf`.  You could also completely purge kerberos [like so](https://serverfault.com/a/885525/305991).  If you need to reconfigure the ipa configuration, you can do `sudo ipa-server-install --uninstall` then try intalling again.  I had to do the uninstall twice for it to work.
 
 ## Set up munge and slurm users and groups
 Immediately after installing OS’s, you want to create the munge and slurm users and groups on all machines.  The GID and UID (group and user IDs) must match for munge and slurm across all machines.  If you have a lot of machines, you can use the parallel SSH utilities mentioned before.  There are also other options like NIS and NISplus.
@@ -440,6 +447,43 @@ Adding users can be done with Linux tools and SLURM commands.  It’s best to cr
 
 [Here is an example script](create_users.sh) to add users from a csv file.
 
+Options used with `useradd`:
+
+-d : sets home directory
+-m : creates home directory if doesn’t exist
+-g : adds user to group
+-p: sets password
+-e: sets expire date to 1 year from now
+-s: sets shell
+
+
+## Storage quotas
+Next we need to set storage quotas for the user.  Follow this guide to set up the quota settings on the machine:
+https://www.digitalocean.com/community/tutorials/how-to-set-filesystem-quotas-on-ubuntu-18-04
+
+Then we can set quotas:
+
+```bash
+sudo setquota -u ngeorge 150G 150G 0 0 /storage
+sudo setquota -u ngeorge 5G 5G 0 0 /
+```
+
+The `/dev/mapper/ubuntu--vg-root` is the LVM partition for the root drive `/`, and `/dev/disk/by-uuid/987d372b-9c96-4e62-af82-2d95dc6655b4` is the <file system> from `/etc/fstab` for the HDD /storage.
+
+This sets the soft and hard limits to 150GB for /storage.
+
+
+To see how much of the quota people are using:
+```
+sudo repquota -s /
+
+sudo repquota -s /storage
+```
+
+The new users don’t seem to always show up until they have saved something on the drive.  You can also specifically look at one user with:
+
+`sudo quota -vs ngeorge`
+
 
 ## Deleting SLURM users on expiration
 The slurm account manager has no way to set an expiration for users.  So we use [this script](check_if_user_expired.sh) to check if the linux username has expired, and if so, we delete the slurm username.  This runs on a cronjob once per day.  At it to the crontab file with:
@@ -481,3 +525,22 @@ Users can see the reason with `sinfo -R`
 
 ## Testing GPU load
 Using `watch -n 0.1 nvidia-smi` will show the GPU load in real-time.  You can use this to monitor jobs as they are scheduled to make sure all the GPUs are being utilized.
+
+
+
+
+## Setting account options
+You may want to limit jobs or submissions.  Here is how to set attributes (-1 means no limit):
+```bash
+sudo sacctmgr modify account students set GrpJobs=-1
+sudo sacctmgr modify account students set GrpSubmitJobs=-1
+sudo sacctmgr modify account students set MaxJobs=-1
+sudo sacctmgr modify account students set MaxSubmitJobs=-1
+```
+
+
+# Better sacct
+
+`sacct --format=jobid,jobname,state,exitcode,user,account`
+
+More on sacct [here](https://slurm.schedmd.com/sacct.html).

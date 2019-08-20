@@ -13,5 +13,6 @@ do
     echo $u
     echo 'user no longer exists, deleting slurm username'
     sudo sacctmgr -i delete user name=$u
+    sudo rm -r /storage/$u
   fi
 done
