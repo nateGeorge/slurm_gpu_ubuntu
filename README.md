@@ -374,6 +374,8 @@ Next we need to set up the configuration file.  Copy the default config from the
 
 `cp /storage/ubuntu-slurm/slurm.conf /storage/slurm.conf`
 
+Note: for job limits for users, you should add the [AccountingStorageEnforce=limits](https://slurm.schedmd.com/resource_limits.html) line to the config file.
+
 Once SLURM is installed on all nodes, we can use the command
 
 `sudo slurmd -C`

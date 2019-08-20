@@ -29,6 +29,7 @@ do
   echo $PASSWORD | sudo ipa user-add $id --first='-' --last='-' --homedir=/storage/$id --shell=/bin/bash --password --setattr krbprincipalexpiration=$(date '+%Y-%m-%d' -d '+1 year +30 days')$'Z' --setattr krbPasswordExpiration=$(date '+%Y-%m-%d' -d '-1 day')$'Z'
   # make their home folder only readable to them and not other students
   sudo mkdir /storage/$id
+  # bashrc and profile were copied from the main accounts home dir
   sudo cp /etc/skel/.profile /storage/$id
   sudo cp /etc/skel/.bashrc /storage/$id
   sudo chmod -R 700 /storage/$id
