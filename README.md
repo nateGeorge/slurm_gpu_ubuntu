@@ -52,6 +52,10 @@ However, if you want to isolate access to users' home folders (best practice I'd
 
 It is important that you set the hostname to a FQDN, otherwise kerberos/FreeIPA won't work.  If you accidentally set the hostname during the kerberos setup to the wrong thing, you can change it in `/etc/krb5.conf`.  You could also completely purge kerberos [like so](https://serverfault.com/a/885525/305991).  If you need to reconfigure the ipa configuration, you can do `sudo ipa-server-install --uninstall` then try intalling again.  I had to do the uninstall twice for it to work.
 
+## Synchronizing time
+It's not a bad idea to sync the time across the servers.  [Here's how](https://knowm.org/how-to-synchronize-time-across-a-linux-cluster/).  One time when I set it up, it was ok, but another time the slurmctld service wouldn't start and it was because the times weren't synced.
+
+
 ## Set up munge and slurm users and groups
 Immediately after installing OS’s, you want to create the munge and slurm users and groups on all machines.  The GID and UID (group and user IDs) must match for munge and slurm across all machines.  If you have a lot of machines, you can use the parallel SSH utilities mentioned before.  There are also other options like NIS and NISplus.
 
@@ -82,9 +86,6 @@ The numbers don’t matter as long as they are available for the user and group 
 Next you should install SSH.  Open a terminal and install: `sudo apt install openssh-server -y`.
 
 Once you have SSH on the machines, you may want to use a [parallel SSH utility](https://www.tecmint.com/run-commands-on-multiple-linux-servers/) to execute commands on all machines at once.
-
-### Synchronizing time
-It's not a bad idea to sync the time across the servers.  [Here's how](https://knowm.org/how-to-synchronize-time-across-a-linux-cluster/).  One time when I set it up, it was ok, but another time the slurmctld service wouldn't start and it was because the times weren't synced.
 
 ### Install NVIDIA drivers
 You will need the latest NVIDIA drivers install for their cards.  The procedure [currently is](http://ubuntuhandbook.org/index.php/2019/04/nvidia-430-09-gtx-1650-support/):
@@ -172,6 +173,7 @@ In order for SLURM to work properly, there must be a storage location present on
 
 For the instructions, we will call the primary server `master` (the one hosting storage and the SLURM controller) and assume we have one worker node (another computer with GPUs) called `worker`.  We will also assume the username/groupname for the main administrative account on all machines is `admin:admin`.  I used the same username and group for the administrative accounts on all the servers.
 
+## Master node
 On the master server, do:
 
 `sudo apt install nfs-kernel-server -y`
@@ -194,12 +196,19 @@ Then adding the line:
 
 `/storage    *(rw,sync,no_root_squash)`
 
-The * is for IP addresses or hostnames.  In this case we allow anything, but you may want to limit it to your IPs/hostnames in the cluster.  Finally, start the NFS service:
+The * is for IP addresses or hostnames.  In this case we allow anything, but you may want to limit it to your IPs/hostnames in the cluster.  In fact, it wasn't working for me unless I explicitly set the IPs of the clients here.  You have to have a separate entry for each IP.  Mine ended up looking like:
+
+`/storage 172.xx.224.xx(rw,sync,no_root_squash,all_squash,anonuid=999999,anongid=999999) 172.xx.224.xx(rw,sync,no_root_squash,all_squash,anonuid=999999,anongid=999999)`
+
+where the 'xx's are actual numbers.
+
+Finally, start the NFS service:
 
 `sudo systemctl start nfs-kernel-server.service`
 
 It should start automatically upon restarts.
 
+## Client nodes
 Now we can set up the clients.  On all worker servers:
 
 ```
@@ -209,14 +218,13 @@ sudo chown admin:admin /storage
 sudo mount master:/storage /storage
 ```
 
-To make the drive mount upon restarts for the worker nodes, add this to fstab:
+To make the drive mount upon restarts for the worker nodes, add this to fstab (`sudo nano /etc/fstab`):
 
 `master:/storage /storage nfs auto,timeo=14,intr 0 0`
 
 This can be done like so:
 
-`echo master:/storage /storage nfs auto,timeo=14,intr 0 0 | sudo tee -a /etc/fstab
-`
+`echo master:/storage /storage nfs auto,timeo=14,intr 0 0 | sudo tee -a /etc/fstab`
 
 Now any files put into /storage from the master server can be seen on all worker servers connect via NFS.  The worker servers MUST be read and write.  If not, any sbatch jobs will give an exit status of 1:0.
 
@@ -546,3 +554,26 @@ sudo sacctmgr modify account students set MaxSubmitJobs=-1
 `sacct --format=jobid,jobname,state,exitcode,user,account`
 
 More on sacct [here](https://slurm.schedmd.com/sacct.html).
+
+
+# Changing IPs
+If the IP addresses of your machines change, you will need to update these in the file `/etc/hosts` on all machines and `/etc/exports` on the master node.  It's best to restart after making these changes.
+
+# NFS directory not showing up
+Check the service is running on the master node:
+`sudo systemctl status nfs-kernel-server.service`
+
+If it is not working, you may have a syntax error in your /etc/exports file.  Rebooting after getting this working is a good idea.  Not a bad idea to reboot the client computers as well.
+
+Once you have the service running on the master node, then see if you can manually mount the drive on the clients:
+
+`sudo mount master:/storage /storage`
+
+If it is hanging here, try mounting on the master server:
+
+`sudo mkdir /test`
+`sudo mount master:/storage /test`
+
+If this works, you might have an issue with ports being blocked or other connection issues between the master and clients.
+
+# Running a demo file
