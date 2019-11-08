@@ -53,6 +53,9 @@ However, if you want to isolate access to users' home folders (best practice I'd
 It is important that you set the hostname to a FQDN, otherwise kerberos/FreeIPA won't work.  If you accidentally set the hostname during the kerberos setup to the wrong thing, you can change it in `/etc/krb5.conf`.  You could also completely purge kerberos [like so](https://serverfault.com/a/885525/305991).  If you need to reconfigure the ipa configuration, you can do `sudo ipa-server-install --uninstall` then try intalling again.  I had to do the uninstall twice for it to work.
 
 ## Synchronizing time
+Free-IPA should take care of syncing time, so you shouldn't have to worry about this if you setup freeipa.  You can see if times are synced with the `date` command on the various machines.
+
+
 It's not a bad idea to sync the time across the servers.  [Here's how](https://knowm.org/how-to-synchronize-time-across-a-linux-cluster/).  One time when I set it up, it was ok, but another time the slurmctld service wouldn't start and it was because the times weren't synced.
 
 
@@ -584,5 +587,8 @@ If this works, you might have an issue with ports being blocked or other connect
 
 You should check your firewall status with `sudo ufw status`.  You should see a rule allowing port 2049 access from your worker nodes.  If you don't have it, be sure to add it with `sudo ufw allow from <ip_addr> to any port nfs`.  You should use the IP and not the hostname.  A reference for this is [here]().
 
+
+# Node not able to connect to slurmctld
+If a node isn't able to connnect to the controller (server/master), first check that time is properly synced.  Try using the `date` command to see if the times are synced across the servers.
 
 # Running a demo file
