@@ -1,4 +1,169 @@
-ion with easy support for tensorflow and some other packages.
+# slurm_gpu_ubuntu
+Instructions for setting up a SLURM cluster using Ubuntu 18.04.3 with GPUs.  Go from a pile of hardware to a functional GPU cluster with job queueing and user management.
+
+OS used: Ubuntu 18.04.3 LTS
+
+
+# Overview
+This guide will help you create and install a GPU HPC cluster with a job queue and user management.  The idea is to have a GPU cluster which allows use of a few GPUs by many people.  Using multiple GPUs at once is not the point here, and hasn't been tested.  This guide demonstrates how to create a GPU cluster for neural networks (deep learning) which uses Python and related neural network libraries (Tensorflow, Keras, Pytorch), CUDA, and NVIDIA GPU cards.  You can expect this to take you a few days up to a week.
+
+## Outline of steps:
+
+- Prepare hardware
+- Install OSs
+- Sync UID/GIDs or create slurm/munge users
+- Install Software (Nvidia drivers, Anaconda and Python packages)
+- Install/configure file sharing (NFS here; if using more than one node/computer in the cluster)
+- Install munge/SLURM and configure
+- User management
+
+## Acknowledgements
+This wouldn't have been possible without this [github repo](https://github.com/mknoxnv/ubuntu-slurm) from mknoxnv.  I don't know who that person is, but they saved me weeks of work trying to figure out all the conf files and services, etc.
+
+# Preparing Hardware
+
+If you do not already have hardware, here are some considerations:
+
+Top-of-the-line commodity motherboards can handle up to 4 GPUs.  You should pay attention to PCI Lanes in the motherboard and CPU specifications.  Usually GPUs can take up to 16 PCI Lanes, and work fastest for data transfer when using all 16 lanes.  To use 4 GPUs in one machine, your motherboard should support at least 64 PCI Lanes, and CPUs should have at least 64 Lanes available.  M.2 SSDs can use PCI lanes as well, so it can be better to have a little more than 64 Lanes if possible.  The motherboard and CPU specs usually detail the PCI lanes.
+
+We used NVIDIA GPU cards in our cluster, but many AMD cards [should now work](https://rocm.github.io/) with Python deep learning libraries now.
+
+Power supply wattage is also important to consider, as GPUs can take a lot of Watts at peak power.
+
+You only need one computer, but to have more than 4 GPUs you will need at least 2 computers.  This guide assumes you are using more than one computer in your cluster.
+
+# Installing operating systems
+
+Once you have hardware up and running, you need to install an OS.  From my research I've found Ubuntu is the top Linux distribution as of 2019 (both for commodity hardware and servers), and is recommended.  Currently the latest long-term stability version is Ubuntu 18.04.3, which is what was used here.  LTS are usually better because they are more stable over time.  Other Linux distributions may differ in some of the commands.
+
+I recommend creating a bootable USB stick and installing Ubuntu from that.  Often with NVIDIA, the installation freezes upon loading and [this fix](https://askubuntu.com/a/870245/458247) must be implemented.  Once the boot menu appears, choose Ubuntu or Install Ubuntu, then press 'e', then add `apci=off` directly after `quiet splash` (leaving a space between splish and apci).  Then press F10 and it should boot.
+
+I recommend using [LVM](https://www.howtogeek.com/211937/how-to-use-lvm-on-ubuntu-for-easy-partition-resizing-and-snapshots/) when installing (there is a checkbox for it with Ubuntu installation), so that you can add and extend storage HDDs if needed.
+
+**Note**: Along the way I used the package manager to update/upgade software many times (`sudo apt-get update` and `sudo apt-get upgrade`) followed by reboots.  If something is not working, this can be a first step to try to debug it.
+
+## Synchronizing GID/UIDs
+It's recommend to sync the GIDs and UIDs across machines.  This can be done with something like LDAP (install instructions [here](https://computingforgeeks.com/how-to-install-and-configure-openldap-ubuntu-18-04/) and [here](https://www.techrepublic.com/article/how-to-install-openldap-on-ubuntu-18-04/)).  In my experience, for basic cluster management where all users can read and write to the folders where job files exist, the only GIDs and UIDs that need to be synced are the slurm and munge users.  Other users can be created and run SLURM jobs without having usernames on the other machines in the cluster.
+
+However, if you want to isolate access to users' home folders (best practice I'd say), then you must synchronize users across the cluster.  The easiest way I've found to synchronize UIDs and GIDs across an Ubuntu cluster is FreeIPA.  Here are installation instructions:
+
+- [Server (master node)](https://computingforgeeks.com/how-to-install-and-configure-freeipa-server-on-ubuntu-18-04-ubuntu-16-04/)
+- [Client (worker nodes)](https://computingforgeeks.com/how-to-configure-freeipa-client-on-ubuntu-18-04-ubuntu-16-04-centos-7/)
+
+It is important that you set the hostname to a FQDN, otherwise kerberos/FreeIPA won't work.  If you accidentally set the hostname during the kerberos setup to the wrong thing, you can change it in `/etc/krb5.conf`.  You could also completely purge kerberos [like so](https://serverfault.com/a/885525/305991).  If you need to reconfigure the ipa configuration, you can do `sudo ipa-server-install --uninstall` then try intalling again.  I had to do the uninstall twice for it to work.
+
+## Synchronizing time
+It's not a bad idea to sync the time across the servers.  [Here's how](https://knowm.org/how-to-synchronize-time-across-a-linux-cluster/).  One time when I set it up, it was ok, but another time the slurmctld service wouldn't start and it was because the times weren't synced.
+
+
+## Set up munge and slurm users and groups
+Immediately after installing OS’s, you want to create the munge and slurm users and groups on all machines.  The GID and UID (group and user IDs) must match for munge and slurm across all machines.  If you have a lot of machines, you can use the parallel SSH utilities mentioned before.  There are also other options like NIS and NISplus.
+
+On all machines we need the munge authentication service and slurm installed.  First, we want to have the munge and slurm users/groups with the same UIDs and GIDs.  In my experience, these are the only GID and UIDs that need synchronization for the cluster to work.  On all machines:
+
+```
+sudo adduser -u 1111 munge --disabled-password --gecos ""
+sudo adduser -u 1121 slurm --disabled-password --gecos ""
+```
+
+#### You shouldn’t need to do this, but just in case, you could create the groups first, then create the users
+
+```
+sudo addgroup -gid 1111 munge
+sudo addgroup -gid 1121 slurm
+sudo adduser -u 1111 munge --disabled-password --gecos "" -gid 1111
+sudo adduser -u 1121 slurm --disabled-password --gecos "" -gid 1121
+```
+
+When a user is created, a group with the same name is created as well.
+
+The numbers don’t matter as long as they are available for the user and group IDs.  These numbers seemed to work with a default Ubuntu 18.04.3 installation.  It seems like by default ubuntu sets up a new user with a UID and  GID of UID + 1 if the GID already exists, so this follows that pattern.
+
+
+
+## Installing software/drivers
+Next you should install SSH.  Open a terminal and install: `sudo apt install openssh-server -y`.
+
+Once you have SSH on the machines, you may want to use a [parallel SSH utility](https://www.tecmint.com/run-commands-on-multiple-linux-servers/) to execute commands on all machines at once.
+
+### Install NVIDIA drivers
+You will need the latest NVIDIA drivers install for their cards.  The procedure [currently is](http://ubuntuhandbook.org/index.php/2019/04/nvidia-430-09-gtx-1650-support/):
+
+```
+sudo add-apt-repository ppa:graphics-drivers/ppa
+sudo apt-get update
+sudo apt-get install nvidia-driver-430
+```
+
+The 430 driver will probably update soon.  You can use `sudo apt-cache search nvidia-driver*` to find the latest one, or go to the "Software & Updates" menu to install it.  For some reason, on the latest install I had to use aptitude to install it:
+
+```
+sudo apt-get install aptitude -y
+sudo aptitude install nvidia-driver-430
+```
+
+But that still didn't seem to solve the issue, and I installed it via the "Software & Updates" menu under "Additional Drivers".
+
+We also use [NoMachine](https://www.nomachine.com/) for remote GUI access.
+
+## Install the Anaconda Python distribution.
+Anaconda makes installing deep learning libraries easier, and doesn’t require installing CUDA/CuDNN libraries (which is a pain).  Anaconda handles the CUDA and other dependencies for deep learning libraries.
+
+Download the distribution file:
+
+```
+cd /tmp
+wget https://repo.anaconda.com/archive/Anaconda3-2019.03-Linux-x86_64.sh
+```
+You may want to visit https://repo.anaconda.com/archive/ to get the latest anaconda version instead, though you can use:
+
+
+`conda update conda anaconda`
+
+or
+
+`conda update --all`
+
+to update Anaconda once it’s installed.
+
+Once the .sh file is downloaded, you should make it executable with
+
+`sudo chmod +777 Anaconda3-2019.03-Linux-x86_64.sh`
+
+then run the file:
+
+`./Anaconda3-2019.03-Linux-x86_64.sh`
+
+I chose yes for `Do you wish the installer to initialize Anaconda3
+by running conda init?`.
+
+Then you should do `source ~/.bashrc` to enable `conda` as a command.
+
+If you chose `no` for the `conda init` portion, you may need to add some aliases to bashrc:
+
+`nano ~/.bashrc`
+
+Add the lines:
+
+```
+alias conda=~/anaconda3/bin/conda
+alias python=~/anaconda3/bin/python
+alias ipython=~/anaconda3/bin/ipython
+```
+
+Now install some anaconda packages:
+
+```
+conda update conda
+conda install anaconda
+conda install python=3.6
+conda install tensorflow-gpu keras pytorch
+```
+
+The 3.6 install can take a while to complete (environment solving with conda is slow; it took about 15 minutes for me even on a fast computer -- the environment solving is definitely a big drawback of anaconda).  Not a bad idea to use tmux and put the `conda install python=3.6` in a `tmux` shell in case an SSH session is interrupted.
+
+Python3.6 is the latest version with easy support for tensorflow and some other packages.
+
 
 At this point you can use this code to test GPU functionality with this [demo code](https://raw.githubusercontent.com/keras-team/keras/master/examples/mnist_cnn.py), you could also use [this](https://stackoverflow.com/a/38580201/4549682).
 
@@ -47,7 +212,7 @@ You should also add a rule to allow for NFS traffic from the workers through por
 
 `sudo ufw allow from <ip_addr> to any port nfs`
 
-Check the status with `sudo ufw status`.  You should see a rule to allow traffic to port 2049 from your worker nodes' IP addresses. [Here's more info](https://www.digitalocean.com/community/tutorials/how-to-set-up-an-nfs-mount-on-ubuntu-16-04). 
+Check the status with `sudo ufw status`.  You should see a rule to allow traffic to port 2049 from your worker nodes' IP addresses. [Here's more info](https://www.digitalocean.com/community/tutorials/how-to-set-up-an-nfs-mount-on-ubuntu-16-04).
 
 
 ## Client nodes
