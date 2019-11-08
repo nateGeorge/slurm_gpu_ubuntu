@@ -37,11 +37,18 @@ The * is for IP addresses or hostnames.  In this case we allow anything, but you
 
 where the 'xx's are actual numbers.
 
-Finally, start the NFS service:
+Then start the NFS service:
 
 `sudo systemctl start nfs-kernel-server.service`
 
 It should start automatically upon restarts.
+
+You should also add a rule to allow for NFS traffic from the workers through port 2049.  This is done like so:
+
+`sudo ufw allow from <ip_addr> to any port nfs`
+
+Check the status with `sudo ufw status`.  You should see a rule to allow traffic to port 2049 from your worker nodes' IP addresses. [Here's more info](https://www.digitalocean.com/community/tutorials/how-to-set-up-an-nfs-mount-on-ubuntu-16-04). 
+
 
 ## Client nodes
 Now we can set up the clients.  On all worker servers:
@@ -409,5 +416,8 @@ If it is hanging here, try mounting on the master server:
 `sudo mount master:/storage /test`
 
 If this works, you might have an issue with ports being blocked or other connection issues between the master and clients.
+
+You should check your firewall status with `sudo ufw status`.  You should see a rule allowing port 2049 access from your worker nodes.  If you don't have it, be sure to add it with `sudo ufw allow from <ip_addr> to any port nfs`.  You should use the IP and not the hostname.  A reference for this is [here]().
+
 
 # Running a demo file
