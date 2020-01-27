@@ -454,7 +454,7 @@ And change the following variable to:
 GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"
 sudo update-grub
 ```
-Finally at the end, I did one last `sudo apt upgate`, `sudo apt upgrade`, and `sudo apt autoremove`, then rebooted the computers:
+Finally at the end, I did one last `sudo apt update`, `sudo apt upgrade`, and `sudo apt autoremove`, then rebooted the computers:
 `sudo reboot`
 
 
