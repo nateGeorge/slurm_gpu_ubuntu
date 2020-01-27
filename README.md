@@ -290,7 +290,7 @@ First we want to clone the repo:
 
 Install prereqs:
 ```
-sudo apt-get install git gcc make ruby ruby-dev libpam0g-dev libmariadb-client-lgpl-dev libmysqlclient-dev mariadb-server -y
+sudo apt-get install git gcc make ruby ruby-dev libpam0g-dev libmariadb-client-lgpl-dev libmysqlclient-dev mariadb-server build-essential libssl-dev -y
 sudo gem install fpm
 ```
 
