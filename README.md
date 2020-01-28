@@ -516,16 +516,29 @@ Add this line:
 Obviously fix the path to where the script is, and change the username to yours.
 
 # Troubleshooting
-If trying to run a job with `sbatch` and the exit code is 1:0, this could mean your common storage location is not r/w accessible to all nodes.  Double-check that you can create files on the /storage location on all workers with something like `touch testing.txt`.
+
+## Log files
+When in doubt, you can check the log files.  The locations are set in the slurm.conf file, and are `/var/log/slurmd.log` and `/var/log/slurmctld.log` by default.  Open them with `sudo nano /var/log/slurmctld.log`.  To go to the bottom of the file, use ctrl+_ and ctrl+v.  I also changed the log paths to `/var/log/slurm/slurmd.log` and so on, and changed the permissions of the folder to be owner by slurm: `sudo chown slurm:slurm /var/log/slurm`.
+
+## Checking SLURM states
+Some helpful commands:
+
+`scontrol ping` -- this checks if the controller node can be reached.  If this isn't working (i.e. the command returns 'DOWN' and not 'UP'), you might need to allow connections to the slurmctrlport (in the slurm.conf file).  This is set to 6817 in the config file.  To allow connections with the firewall, execute:
+
+`sudo ufw allow from any to any port 6817`
+
+and
+
+`sudo ufw reload`
+
+## Error codes 1:0 and 2:0
+If trying to run a job with `sbatch` and the exit code is 1:0, this could mean your common storage location is not r/w accessible to all nodes.  Double-check that you can create files on the /storage location on all workers with something like `touch testing.txt`.  If you can't create a file from the worker nodes,
 
 If the exit code is 2:0, this can mean there is some problem with either the location of the python executable, or some other error when running the python script.  Double check that the srun or python script is working as expected with the python executable specified in the sbatch job file.
 
 If some workers are 'draining', down, or unavailable, you might try:
 
 `sudo scontrol update NodeName=worker1 State=RESUME`
-
-## Log files
-When in doubt, you can check the log files.  The locations are set in the slurm.conf file, and are `/var/log/slurmd.log` and `/var/log/slurmctld.log` by default.  Open them with `sudo nano /var/log/slurmctld.log`.  To go to the bottom of the file, use ctrl+_ and ctrl+v.
 
 
 ## Node is stuck draining (drng from `sinfo`)
@@ -585,10 +598,17 @@ If it is hanging here, try mounting on the master server:
 
 If this works, you might have an issue with ports being blocked or other connection issues between the master and clients.
 
-You should check your firewall status with `sudo ufw status`.  You should see a rule allowing port 2049 access from your worker nodes.  If you don't have it, be sure to add it with `sudo ufw allow from <ip_addr> to any port nfs`.  You should use the IP and not the hostname.  A reference for this is [here]().
+You should check your firewall status with `sudo ufw status`.  You should see a rule allowing port 2049 access from your worker nodes.  If you don't have it, be sure to add it with `sudo ufw allow from <ip_addr> to any port nfs` then `sudo ufw reload`.  You should use the IP and not the hostname.  A reference for this is [here]().
 
 
 # Node not able to connect to slurmctld
 If a node isn't able to connnect to the controller (server/master), first check that time is properly synced.  Try using the `date` command to see if the times are synced across the servers.
+
+# Unable to uninstall and reinstall freeipa client
+If you are trying to uninstall the freeipa client and reinstall it and it fails (e.g. gives an error `The ipa-client-install command failed. See /var/log/ipaclient-install.log for more information`), you can try installing it with:
+
+`sudo ipa-client-install --hostname=`hostname -f` --mkhomedir --server=copper.regis.edu --domain regis.edu --realm REGIS.EDU --force-join`
+
+where the domain is your FQDN instead of regis.edu.
 
 # Running a demo file
