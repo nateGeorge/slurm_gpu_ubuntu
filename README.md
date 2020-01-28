@@ -532,7 +532,7 @@ and
 `sudo ufw reload`
 
 ## Error codes 1:0 and 2:0
-If trying to run a job with `sbatch` and the exit code is 1:0, this could mean your common storage location is not r/w accessible to all nodes.  Double-check that you can create files on the /storage location on all workers with something like `touch testing.txt`.  If you can't create a file from the worker nodes,
+If trying to run a job with `sbatch` and the exit code is 1:0, this could mean your common storage location is not r/w accessible to all nodes.  Double-check that you can create files on the /storage location on all workers with something like `touch testing.txt`.  If you can't create a file from the worker nodes, you probably have some sort of NFS issue.  Go back to the NFS section and make sure everything looks ok.  You should be able to create directories/files in /storage from any node with the admin account and they should show up as owned by the admin user.  If not, you may have some issue in your /etc/exports or with your GID/UIDs not matching.
 
 If the exit code is 2:0, this can mean there is some problem with either the location of the python executable, or some other error when running the python script.  Double check that the srun or python script is working as expected with the python executable specified in the sbatch job file.
 
