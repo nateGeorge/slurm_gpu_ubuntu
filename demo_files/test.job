@@ -1,0 +1,10 @@
+#!/bin/bash
+#SBATCH -N 1      # nodes requested
+#SBATCH --job-name=test
+#SBATCH --output=/storage/test/test.out
+#SBATCH --error=/storage/test/test.err
+#SBATCH --time=2-00:00
+#SBATCH --mem=36000
+#SBATCH --qos=normal
+#SBATCH --gres=gpu:1
+srun /home/msds/anaconda3/bin/python /storage/test/tf2_test.py

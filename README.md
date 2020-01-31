@@ -612,3 +612,14 @@ If you are trying to uninstall the freeipa client and reinstall it and it fails 
 where the domain is your FQDN instead of regis.edu.
 
 # Running a demo file
+
+To test the cluster, it's useful to run some demo code.  Since Keras is within TensorFlow from version 2.0 onward, there are two demo files under the folder 'demo_files'.  tf1_test.py is for TensorFlow 1.x, and tf2_test.py is for TensorFlow 2.x.
+
+To run the demo file, it's best to first just run it with the system Python to see if it works.  You can run `python tf2_test.py`, and if it works then you can proceed to the next step.  If not, check the Python path (`which python`) to make sure it's using the correct Python executable.
+
+To ensure you're using the GPU and not CPU, you can run `nvidia-smi` to watch and make sure the GPU memory is getting used while running the file.  `watch -n 0.1 nvidia-smi` will show the GPU memory updated every 0.1 second.
+
+Once the TensorFlow demo file works, you can try submitting it as a SLURM job.  This uses the test.job file.  Run `sbatch test.job`.  Then you can check the status of the job with `sacct`.  This should show 'running', and you should see GPU being used on one of the worker nodes.  To specify the exact worker node being used, add a line to the .job file:
+`#SBATCH --nodelist=worker_name`
+where 'worker_name' is the name of the node.
+You should also be able to use `sinfo` to check which nodes are running jobs.
