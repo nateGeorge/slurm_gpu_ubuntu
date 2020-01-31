@@ -10,7 +10,6 @@ Gets to 99.25% test accuracy after 12 epochs
 16 seconds per epoch on a GRID K520 GPU.
 '''
 
-from __future__ import print_function
 import tensorflow.keras as keras
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Sequential
@@ -20,7 +19,7 @@ from tensorflow.keras import backend as K
 
 batch_size = 128
 num_classes = 10
-epochs = 3
+epochs = 30
 
 # input image dimensions
 img_rows, img_cols = 28, 28
