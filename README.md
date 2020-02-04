@@ -465,21 +465,13 @@ Adding users can be done with Linux tools and SLURM commands.  It’s best to cr
 
 `sudo groupadd normal`
 
-[Here is an example script](create_users.sh) to add users from a csv file.
+[Here is an example script](create_users.sh) to add users from a csv file.  There is also a [script for deleting users](delete_users.sh).
 
-Options used with `useradd`:
-
--d : sets home directory
--m : creates home directory if doesn’t exist
--g : adds user to group
--p: sets password
--e: sets expire date to 1 year from now
--s: sets shell
+We are adding users within the FreeIPA system, within the SLURM system, and creating a home directory.  The user is set to expire a little over a year from creation, and the password is set to expire upon the first login (prompting the user to change their password).
 
 
 ## Storage quotas
-Next we need to set storage quotas for the user.  Follow this guide to set up the quota settings on the machine:
-https://www.digitalocean.com/community/tutorials/how-to-set-filesystem-quotas-on-ubuntu-18-04
+Next we need to set storage quotas for the user.  Follow [this guide](https://www.digitalocean.com/community/tutorials/how-to-set-filesystem-quotas-on-ubuntu-18-04) to set up the quota settings on the machine.
 
 Then we can set quotas:
 
@@ -505,11 +497,11 @@ The new users don’t seem to always show up until they have saved something on 
 
 
 ## Deleting SLURM users on expiration
-The slurm account manager has no way to set an expiration for users.  So we use [this script](check_if_user_expired.sh) to check if the linux username has expired, and if so, we delete the slurm username.  This runs on a cronjob once per day.  At it to the crontab file with:
+The slurm account manager has no way to set an expiration for users.  So we use [this script](check_if_user_expired.sh) to check if the Linux username has expired, and if so, we delete the slurm username and home directory.  This runs on a cronjob once per day.  At it to the crontab file with:
 
 `sudo crontab -e`
 
-Add this line:
+Add this line to run at 5 am every day on the machine:
 
 `0 5 * * * bash /home/<username>/slurm_gpu_ubuntu/check_if_user_expired.sh
 `
@@ -620,6 +612,8 @@ where the domain is your FQDN instead of regis.edu and instead of 'copper' you s
 You might also try removing this file instead:
 
 `sudo rm /var/lib/ipa-client/sysrestore/sysrestore.state`
+
+However, when I was having this problem, it appeared to be some issue with the LDAP and SSSD not working.  I ended up reformatting and reinstalling the OS on the problem machine instead of trying to debug SSSD which looked extremely time consuming.
 
 
 # Running a demo file

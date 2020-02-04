@@ -2,6 +2,7 @@
 
 # checks if a slurm user should be deleted.  This happens if the user
 # saccmgr options: -n = no header, -P = parsable2 (pipe delimited)
+# csvcut is from csvkit; install with conda or pip: conda install csvkit
 slurm_users=$(sacctmgr list user -n -P | csvcut -d '|' -c 1)
 for u in $slurm_users
 do

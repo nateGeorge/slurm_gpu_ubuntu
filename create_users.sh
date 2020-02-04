@@ -4,12 +4,24 @@
 # sudo sacctmgr create account students
 
 # need to first authenticate for kerberos
-sudo kinit admin
+# kpass can be set in ~/.bashrc or as an environment variable
+{
+echo $kpass | sudo kinit admin
+} || {
+  # if $kpass env variable does not exist, it will ask for the password
+  sudo kinit admin
+} || {
+  # don't run script if auth fails
+  echo "couldn't authenticate for kerberos; exiting"
+  exit 1
+}
 
 csvfile=Class_List_MSDS684_FW1_2019.csv
 defaultsalt="deepdream"
 
 # gets the fourth column from the csv, which is the id in this case
+# you need to install csvtool for this to work: sudo apt install csvtool -y
+# sed '1d' deletes the first line (the column label)
 ids=$(csvtool namedcol "User ID" $csvfile  | sed '1d')
 for id in $ids
 do
@@ -35,6 +47,7 @@ do
   # only allow users to see their own directory and not others'
   sudo chmod -R 700 /storage/$id
   # only allow users to use 4 of 6 GPUs at a time
+  # -i option: commit without asking for confirmation (no y/N option)
   sudo sacctmgr -i create user name=$id account=students MaxJobs=4 MaxSubmitJobs=30
   # sudo sacctmgr -i modify user where name=$id set MaxJobs=4
   # fi
