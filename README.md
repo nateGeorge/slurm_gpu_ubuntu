@@ -47,7 +47,7 @@ It's recommend to sync the GIDs and UIDs across machines.  This can be done with
 
 However, if you want to isolate access to users' home folders (best practice I'd say), then you must synchronize users across the cluster.  The easiest way I've found to synchronize UIDs and GIDs across an Ubuntu cluster is FreeIPA.  Here are installation instructions:
 
-- [Server (master node)](https://computingforgeeks.com/how-to-install-and-configure-freeipa-server-on-ubuntu-18-04-ubuntu-16-04/)
+- [Server (master node)](https://computingforgeeks.com/how-to-install-and-configure-freeipa-server-on-ubuntu-18-04-ubuntu-16-04/) (note: I had to run [this command](https://stackoverflow.com/a/54539428/4549682) to fix an issue after installing)
 - [Client (worker nodes)](https://computingforgeeks.com/how-to-configure-freeipa-client-on-ubuntu-18-04-ubuntu-16-04-centos-7/)
 
 It is important that you set the hostname to a FQDN, otherwise kerberos/FreeIPA won't work.  If you accidentally set the hostname during the kerberos setup to the wrong thing, you can change it in `/etc/krb5.conf`.  You could also completely purge kerberos [like so](https://serverfault.com/a/885525/305991).  If you need to reconfigure the ipa configuration, you can do `sudo ipa-server-install --uninstall` then try intalling again.  I had to do the uninstall twice for it to work.
@@ -609,9 +609,18 @@ If a node isn't able to connnect to the controller (server/master), first check 
 # Unable to uninstall and reinstall freeipa client
 If you are trying to uninstall the freeipa client and reinstall it and it fails (e.g. gives an error `The ipa-client-install command failed. See /var/log/ipaclient-install.log for more information`), you can try installing it with:
 
-`sudo ipa-client-install --hostname=`hostname -f` --mkhomedir --server=copper.regis.edu --domain regis.edu --realm REGIS.EDU --force-join`
+```
+sudo ipa-client-install --hostname=`hostname -f` \
+--mkhomedir --server=copper.regis.edu \
+--domain regis.edu --realm REGIS.EDU --force-join
+```
 
-where the domain is your FQDN instead of regis.edu.
+where the domain is your FQDN instead of regis.edu and instead of 'copper' you should use your server's name.
+
+You might also try removing this file instead:
+
+`sudo rm /var/lib/ipa-client/sysrestore/sysrestore.state`
+
 
 # Running a demo file
 
