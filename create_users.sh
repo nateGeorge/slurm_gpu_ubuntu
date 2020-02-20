@@ -5,11 +5,17 @@
 
 # need to first authenticate for kerberos
 # kpass can be set in ~/.bashrc or as an environment variable
+
+# the CSV file should have a header row, then values like:
+#
+# Name,ID,Email,User ID
+# "George, Nathan C.",2915101,ngeorge@regis.edu,ngeorge01
+
 {
-echo $kpass | sudo kinit admin
+echo $kpass | kinit admin
 } || {
   # if $kpass env variable does not exist, it will ask for the password
-  sudo kinit admin
+  kinit admin
 } || {
   # don't run script if auth fails
   echo "couldn't authenticate for kerberos; exiting"
@@ -38,7 +44,7 @@ do
   # for testing I also had to set the minimum password life to 0 hours:
   # ipa pwpolicy-mod global_policy --minlife 0
   # https://serverfault.com/a/609004/305991
-  echo $PASSWORD | sudo ipa user-add $id --first='-' --last='-' --homedir=/storage/$id --shell=/bin/bash --password --setattr krbprincipalexpiration=$(date '+%Y-%m-%d' -d '+1 year +30 days')$'Z' --setattr krbPasswordExpiration=$(date '+%Y-%m-%d' -d '-1 day')$'Z'
+  echo $PASSWORD | ipa user-add $id --first='-' --last='-' --homedir=/storage/$id --shell=/bin/bash --password --setattr krbprincipalexpiration=$(date '+%Y-%m-%d' -d '+1 year +30 days')$'Z' --setattr krbPasswordExpiration=$(date '+%Y-%m-%d' -d '-1 day')$'Z'
   # make their home folder only readable to them and not other students
   sudo mkdir /storage/$id
   # bashrc and profile were copied from the main accounts' home dir

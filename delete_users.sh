@@ -20,7 +20,7 @@ ids=$(csvtool col 1 $csvfile)
 
 for id in $ids
 do
-  sudo ipa user-del $id
+  ipa user-del $id
   # -i option: commit without asking for confirmation
   sudo sacctmgr -i delete user $id
   sudo rm -r /storage/$id
