@@ -1,3 +1,4 @@
+from __future__ import print_function
 """
 Source: https://github.com/keras-team/keras/blob/master/examples/mnist_cnn.py
 This uses keras and tensorflow pre-tensorflow 2.0.
@@ -10,17 +11,17 @@ Gets to 99.25% test accuracy after 12 epochs
 16 seconds per epoch on a GRID K520 GPU.
 '''
 
-from __future__ import print_function
 import keras
 from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras import backend as K
+from keras.callbacks.callbacks import ModelCheckpoint
 
 batch_size = 128
 num_classes = 10
-epochs = 30
+epochs = 3
 
 # input image dimensions
 img_rows, img_cols = 28, 28
@@ -65,11 +66,19 @@ model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adadelta(),
               metrics=['accuracy'])
 
+# add checkpoint to save model with lowest val loss
+filepath = 'tf1_mnist_cnn.hdf5'
+save_checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, \
+                             save_best_only=False, save_weights_only=False, \
+                             mode='auto', period=1)
+
 model.fit(x_train, y_train,
           batch_size=batch_size,
           epochs=epochs,
           verbose=1,
-          validation_data=(x_test, y_test))
+          validation_data=(x_test, y_test),
+          callbacks=[save_checkpoint])
+
 score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
