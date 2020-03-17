@@ -54,7 +54,10 @@ do
   sudo chmod -R 700 /storage/$id
   # only allow users to use 4 of 6 GPUs at a time
   # -i option: commit without asking for confirmation (no y/N option)
-  sudo sacctmgr -i create user name=$id account=students MaxJobs=4 MaxSubmitJobs=30
+  # MaxJobs -- max number of jobs that can run at once
+  # MaxSubmitJobs -- Max number of jobs that can be submitted to the queue
+  # MaxWall -- max number of minutes per job (set to 12 hours)
+  sudo sacctmgr -i create user name=$id account=students MaxJobs=4 MaxSubmitJobs=30 MaxWall=720
   # sudo sacctmgr -i modify user where name=$id set MaxJobs=4
   # fi
 done
