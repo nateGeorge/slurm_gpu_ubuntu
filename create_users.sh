@@ -22,6 +22,13 @@ echo $kpass | kinit admin
   exit 1
 }
 
+# test to ensure ipa connection works
+res=ip
+if ! [ $? -eq 0 ]; then
+    echo 'connection to ipa failed; exiting'
+    exit 1
+fi
+
 csvfile=Class_List_MSDS684_FW1_2019.csv
 defaultsalt="deepdream"
 
@@ -31,6 +38,8 @@ defaultsalt="deepdream"
 ids=$(csvtool namedcol "User ID" $csvfile  | sed '1d')
 for id in $ids
 do
+  # in case IDs are uppercase, convert to lowercase
+  lc_id=$(echo "$id" | tr '[:upper:]' '[:lower:]')
   # some bug is causing the users to stick around even after sudo ipa user-del,
   # so skip this check to see if they exist
   # if id "$id" > /dev/null 2>&1; then
@@ -38,26 +47,26 @@ do
   #   echo 'user already exists'
   #   :
   # else
-  PASSWORD="$id$defaultsalt"
+  PASSWORD="$lc_id$defaultsalt"
   echo $PASSWORD
   echo /storage/$id/
   # for testing I also had to set the minimum password life to 0 hours:
   # ipa pwpolicy-mod global_policy --minlife 0
   # https://serverfault.com/a/609004/305991
-  echo $PASSWORD | ipa user-add $id --first='-' --last='-' --homedir=/storage/$id --shell=/bin/bash --password --setattr krbprincipalexpiration=$(date '+%Y-%m-%d' -d '+1 year +30 days')$'Z' --setattr krbPasswordExpiration=$(date '+%Y-%m-%d' -d '-1 day')$'Z'
+  echo $PASSWORD | ipa user-add $lc_id --first='-' --last='-' --homedir=/storage/$lc_id --shell=/bin/bash --password --setattr krbprincipalexpiration=$(date '+%Y-%m-%d' -d '+1 year +30 days')$'Z' --setattr krbPasswordExpiration=$(date '+%Y-%m-%d' -d '-1 day')$'Z'
   # make their home folder only readable to them and not other students
-  sudo mkdir /storage/$id
+  sudo mkdir /storage/$lc_id
   # bashrc and profile were copied from the main accounts' home dir
-  sudo cp /etc/skel/.profile /storage/$id
-  sudo cp /etc/skel/.bashrc /storage/$id
+  sudo cp /etc/skel/.profile /storage/$lc_id
+  sudo cp /etc/skel/.bashrc /storage/$lc_id
   # only allow users to see their own directory and not others'
-  sudo chmod -R 700 /storage/$id
+  sudo chmod -R 700 /storage/$lc_id
   # only allow users to use 4 of 6 GPUs at a time
   # -i option: commit without asking for confirmation (no y/N option)
   # MaxJobs -- max number of jobs that can run at once
   # MaxSubmitJobs -- Max number of jobs that can be submitted to the queue
   # MaxWall -- max number of minutes per job (set to 12 hours)
-  sudo sacctmgr -i create user name=$id account=students MaxJobs=4 MaxSubmitJobs=30 MaxWall=720
+  sudo sacctmgr -i create user name=$lc_id account=students MaxJobs=4 MaxSubmitJobs=30 MaxWall=720
   # sudo sacctmgr -i modify user where name=$id set MaxJobs=4
   # fi
 done
@@ -65,8 +74,10 @@ done
 # for some reason it can't find the newly-created users, so have to put this in another loop
 for id in $ids
 do
-  sudo chown -R $id:$id /storage/$id
+  # in case IDs are uppercase, convert to lowercase
+  lc_id=$(echo "$id" | tr '[:upper:]' '[:lower:]')
+  sudo chown -R $lc_id:$lc_id /storage/$lc_id
   # set quota on storage drive
-  sudo setquota -u $id 150G 150G 0 0 /storage
-  sudo setquota -u $id 5G 5G 0 0 /
+  sudo setquota -u $lc_id 150G 150G 0 0 /storage
+  sudo setquota -u $lc_id 5G 5G 0 0 /
 done
