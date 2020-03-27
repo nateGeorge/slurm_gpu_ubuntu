@@ -68,14 +68,16 @@ model.compile(loss=keras.losses.categorical_crossentropy,
 
 # add checkpoint to save model with lowest val loss
 filepath = 'tf1_mnist_cnn.hdf5'
-save_checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, \
+save_checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=2, \
                              save_best_only=False, save_weights_only=False, \
                              mode='auto', period=1)
 
+# verbose=2 is important; it writes one line per epoch
+# verbose=1 is the 'live monitoring' version, which doesn't work with slurm
 model.fit(x_train, y_train,
           batch_size=batch_size,
           epochs=epochs,
-          verbose=1,
+          verbose=2,
           validation_data=(x_test, y_test),
           callbacks=[save_checkpoint])
 

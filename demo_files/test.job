@@ -7,4 +7,6 @@
 #SBATCH --mem=36000
 #SBATCH --qos=normal
 #SBATCH --gres=gpu:1
-srun /home/msds/anaconda3/bin/python /storage/test/tf2_test.py
+# the -u option means 'unbuffered',
+# which should continuously write output to the .out file
+srun -u /home/msds/anaconda3/bin/python /storage/test/tf2_test.py
