@@ -50,7 +50,7 @@ However, if you want to isolate access to users' home folders (best practice I'd
 - [Server (master node)](https://computingforgeeks.com/how-to-install-and-configure-freeipa-server-on-ubuntu-18-04-ubuntu-16-04/) (note: I had to run [this command](https://stackoverflow.com/a/54539428/4549682) to fix an issue after installing)
 - [Client (worker nodes)](https://computingforgeeks.com/how-to-configure-freeipa-client-on-ubuntu-18-04-ubuntu-16-04-centos-7/)
 
-It is important that you set the hostname to a FQDN, otherwise kerberos/FreeIPA won't work.  If you accidentally set the hostname during the kerberos setup to the wrong thing, you can change it in `/etc/krb5.conf`.  You could also completely purge kerberos [like so](https://serverfault.com/a/885525/305991).  If you need to reconfigure the ipa configuration, you can do `sudo ipa-server-install --uninstall` then try intalling again.  I had to do the uninstall twice for it to work.
+It is important that you set the hostname to a FQDN, otherwise kerberos/FreeIPA won't work.  If you accidentally set the hostname during the kerberos setup to the wrong thing, you can change it in `/etc/krb5.conf`.  You could also completely purge kerberos [like so](https://serverfault.com/a/885525/305991).  If you need to reconfigure the ipa configuration, you can do `sudo ipa-server-install --uninstall` then try installing again.  I had to do the uninstall twice for it to work.
 
 ## Synchronizing time
 Free-IPA should take care of syncing time, so you shouldn't have to worry about this if you setup freeipa.  You can see if times are synced with the `date` command on the various machines.
@@ -60,7 +60,7 @@ It's not a bad idea to sync the time across the servers.  [Here's how](https://k
 
 
 ## Set up munge and slurm users and groups
-Immediately after installing OS’s, you want to create the munge and slurm users and groups on all machines.  The GID and UID (group and user IDs) must match for munge and slurm across all machines.  If you have a lot of machines, you can use the parallel SSH utilities mentioned before.  There are also other options like NIS and NISplus.
+Immediately after installing OS’s, you want to create the munge and slurm users and groups on all machines.  The GID and UID (group and user IDs) must match for munge and slurm across all machines.  If you have a lot of machines, you can use the parallel SSH utilities mentioned before.  There are also other options like NIS and NISplus.  One other option is to use FreeIPA to create users and groups.
 
 On all machines we need the munge authentication service and slurm installed.  First, we want to have the munge and slurm users/groups with the same UIDs and GIDs.  In my experience, these are the only GID and UIDs that need synchronization for the cluster to work.  On all machines:
 
@@ -563,6 +563,19 @@ sudo sacctmgr modify account students set GrpSubmitJobs=-1
 sudo sacctmgr modify account students set MaxJobs=-1
 sudo sacctmgr modify account students set MaxSubmitJobs=-1
 ```
+
+## FreeIPA Troubleshooting
+
+If you can't access the FreeIPA admin web GUI, you may try changing permissions on the Kerberos folder as noted [here](https://scattered.network/2019/04/09/freeipa-webui-login-fails-with-login-failed-due-to-an-unknown-reason/).
+
+To get the machines to talk to each other with FreeIPA, you may also need to take some or all of these steps:
+
+- [Install a DNS service on the IPA server](https://docs.fedoraproject.org/en-US/Fedora/18/html/FreeIPA_Guide/enabling-dns.html)
+- [configure it to recognize the clients](https://www.howtoforge.com/how-to-install-freeipa-client-on-ubuntu-server-1804/#step-testing-freeipa-client)
+- This may also require enabling TCP and UDP traffic on port 53, and changing
+the [resolv.conf file on the clients](http://clusterfrak.com/sysops/app_installs/freeipa_clients/) to recognize the new name server on the server computer
+- change the /etc/nsswitch.conf file to include the line "initgroups: files sss", and
+add several instances "sss" to [other lines in this file](https://bugzilla.redhat.com/show_bug.cgi?id=1366569)
 
 
 # Better sacct
