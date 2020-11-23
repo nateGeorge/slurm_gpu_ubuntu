@@ -459,16 +459,19 @@ Finally at the end, I did one last `sudo apt update`, `sudo apt upgrade`, and `s
 
 
 # User Management
+It's best to configure the password min life to 0, so users can change their passwords immediately and log in.  This can be done with:
+`ipa pwpolicy-add ipausers --minlife=0 --priority=0`
+This is useful for resetting passwords.
+
 ## Adding users
-
-Adding users can be done with Linux tools and SLURM commands.  It’s best to create a group for different user groups:
-
-`sudo groupadd normal`
-
+Since we are using FreeIPA, we can use that to create users.
 [Here is an example script](create_users.sh) to add users from a csv file.  There is also a [script for deleting users](delete_users.sh).
 
 We are adding users within the FreeIPA system, within the SLURM system, and creating a home directory.  The user is set to expire a little over a year from creation, and the password is set to expire upon the first login (prompting the user to change their password).
 
+Adding users may also be possibly done with Linux tools and SLURM commands.  In that case it's best to create a group for different user groups:
+`sudo groupadd normal`
+But this would require creating users on all the machines. FreeIPA takes care of that for us, so it's a better solution.
 
 ## Storage quotas
 Next we need to set storage quotas for the user.  Follow [this guide](https://www.digitalocean.com/community/tutorials/how-to-set-filesystem-quotas-on-ubuntu-18-04) to set up the quota settings on the machine.
@@ -511,9 +514,13 @@ Obviously fix the path to where the script is, and change the username to yours.
 To reset a user password:
 
 `kinit admin`
-`ipa user-mod <username> --password`
-Sets password to already be expired so they must reset it upon login:
-`ipa user-mod <username> --setattr krbPasswordExpiration=$(date '+%Y-%m-%d' -d '-1 day')$'Z'`
+`ipa user-mod <username> --password --setattr krbPasswordExpiration=$(date '+%Y-%m-%d' -d '-1 day')$'Z'`
+This also sets the password to already be expired so they must reset it upon login.
+
+If the error comes up: `Password change failed. Server message: Current password's minimum life has not expired`
+then the min life for passwords needs to be changed:
+`ipa pwpolicy-add ipausers --minlife=0 --priority=0`
+The ipausers above is the group for the users for which passwords are being reset.
 
 # Troubleshooting
 
