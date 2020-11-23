@@ -86,6 +86,7 @@ else
     # for testing I also had to set the minimum password life to 0 hours:
     # ipa pwpolicy-mod global_policy --minlife 0
     # https://serverfault.com/a/609004/305991
+    # sets user to expire in 1 year + 1 month, and the password is set to have already expired (so they must reset it upon logging in)
     echo $PASSWORD | ipa user-add $lc_id --first='-' --last='-' --homedir=/storage/$lc_id --shell=/bin/bash --password --setattr krbprincipalexpiration=$(date '+%Y-%m-%d' -d '+1 year +30 days')$'Z' --setattr krbPasswordExpiration=$(date '+%Y-%m-%d' -d '-1 day')$'Z'
     # make their home folder only readable to them and not other students
     sudo mkdir /storage/$lc_id

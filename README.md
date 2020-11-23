@@ -507,7 +507,17 @@ Add this line to run at 5 am every day on the machine:
 `
 Obviously fix the path to where the script is, and change the username to yours.
 
+## Resetting user passwords
+To reset a user password:
+
+`kinit admin`
+`ipa user-mod <username> --password`
+Sets password to already be expired so they must reset it upon login:
+`ipa user-mod <username> --setattr krbPasswordExpiration=$(date '+%Y-%m-%d' -d '-1 day')$'Z'`
+
 # Troubleshooting
+
+When in doubt, first try updating software with `sudo apt update; sudo apt upgrade -y` and rebooting (`sudo reboot`).
 
 ## Log files
 When in doubt, you can check the log files.  The locations are set in the slurm.conf file, and are `/var/log/slurmd.log` and `/var/log/slurmctld.log` by default.  Open them with `sudo nano /var/log/slurmctld.log`.  To go to the bottom of the file, use ctrl+_ and ctrl+v.  I also changed the log paths to `/var/log/slurm/slurmd.log` and so on, and changed the permissions of the folder to be owner by slurm: `sudo chown slurm:slurm /var/log/slurm`.
@@ -579,6 +589,8 @@ add several instances "sss" to [other lines in this file](https://bugzilla.redha
 
 
 # Better sacct
+
+This shows all running jobs with the user who is running them.
 
 `sacct --format=jobid,jobname,state,exitcode,user,account`
 
