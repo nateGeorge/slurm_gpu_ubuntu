@@ -36,7 +36,7 @@ You only need one computer, but to have more than 4 GPUs you will need at least 
 
 Once you have hardware up and running, you need to install an OS.  From my research I've found Ubuntu is the top Linux distribution as of 2019 (both for commodity hardware and servers), and is recommended.  Currently the latest long-term stability version is Ubuntu 18.04.3, which is what was used here.  LTS are usually better because they are more stable over time.  Other Linux distributions may differ in some of the commands.
 
-I recommend creating a bootable USB stick and installing Ubuntu from that.  Often with NVIDIA, the installation freezes upon loading and [this fix](https://askubuntu.com/a/870245/458247) must be implemented.  Once the boot menu appears, choose Ubuntu or Install Ubuntu, then press 'e', then add `apci=off` directly after `quiet splash` (leaving a space between splish and apci).  Then press F10 and it should boot.
+I recommend creating a bootable USB stick and installing Ubuntu from that.  Often with NVIDIA, the installation freezes upon loading and [this fix](https://askubuntu.com/a/870245/458247) must be implemented.  Once the boot menu appears, choose Ubuntu or Install Ubuntu, then press 'e', then add `apci=off` directly after `quiet splash` (leaving a space between splash and apci).  Then press F10 and it should boot.
 
 I recommend using [LVM](https://www.howtogeek.com/211937/how-to-use-lvm-on-ubuntu-for-easy-partition-resizing-and-snapshots/) when installing (there is a checkbox for it with Ubuntu installation), so that you can add and extend storage HDDs if needed.
 
